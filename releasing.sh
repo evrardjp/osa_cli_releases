@@ -28,6 +28,7 @@ function cleanup {
 }
 
 function clone {
+  mkdir -p ${WORKDIR}
   cd $WORKDIR
   git clone ${REPOS_GIT_URL}/releases.git
   git clone ${REPOS_GIT_URL}/openstack-ansible.git
@@ -51,6 +52,7 @@ function ask_ready_to_review {
     cd -
   else
     echo "Not Ready, not sending review. Please send review manually."
+    exit 1
   fi
 }
 
@@ -120,7 +122,7 @@ function release_branch {
   git checkout -b stable/$BRANCH -t origin/stable/$BRANCH || true # Ensure the work of OSA toolkit is done on the right branch.
   git pull                                                        # Ensure said branch is up to date.
 
-  bump-ansible-role-requirements | tee -a ${RELEASINGLOG}         # self-explanatory. CLI command from toolkit.
+  bump-ansible-role-requirements | tee -a ${RELEASINGLOG}         # self-explanatory. CLI command from toolkit. # Keep in mind hardcoded location there.
   bump-oa-release-number --version=auto | tee -a ${RELEASINGLOG}  # self-explanatory. CLI command from toolkit.
   # The current toolkit shows an "Update all SHAs for " example commit message, that can be used for discovering next version.
   export NEXT_RELEASE=$(perl -n -e '/Update all SHAs for (.*)/ && print "$1\n"' ${RELEASINGLOG} | tail -n 1 )
