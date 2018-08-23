@@ -27,7 +27,7 @@ def test_parse_upper_constraints():
 def test_discover_requirements_sha():
     assert (
         "4425ce22fda513fb7a20e77f28685004296731d0"
-        == releasing.discover_requirements_sha(path="tests/openstack_services.yml")
+        == releasing.discover_requirements_sha(path="tests/fixtures/openstack_services.yml")
     )
 
 
@@ -65,3 +65,11 @@ def test_print_requirements_state_in_uc(capsys):
     assert out == out2
     assert err == err2
     assert err == ""
+
+
+def test_bump_upstream_repos_shas():
+    pass
+
+
+def test_find_yaml_files():
+    pass 
