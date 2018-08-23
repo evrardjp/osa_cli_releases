@@ -1,0 +1,13 @@
+AUTHORS
+ChangeLog
+cover
+.coverage
+dist
+doc/build
+*.egg-info
+*.pyc
+.pytest_cache
+releasenotes/build
+.testrepository
+.tox
+upgrade/
