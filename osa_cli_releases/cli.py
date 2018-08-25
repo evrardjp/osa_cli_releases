@@ -36,7 +36,18 @@ def analyse_global_requirement_pins():
 
 
 def bump_upstream_repos_shas():
-    pass
+    """ Bump upstream projects SHAs.
+    :param path: String containing the path of the YAML files formatted for updates
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--path",
+        help="path to the folder containing YAML files to update with new SHAs",
+        default="playbooks/defaults/repo_packages/",
+    )
+    args = parser.parse_args()
+
+    releasing.bump_upstream_repos_shas(args.path)
 
 
 def bump_arr():
