@@ -29,7 +29,7 @@ def test_discover_requirements_sha():
     assert (
         "4425ce22fda513fb7a20e77f28685004296731d0"
         == releasing.discover_requirements_sha(
-            path="tests/fixtures/openstack_services.yml"
+            path="tests/fixtures/repo_packages/openstack_services.yml"
         )
     )
 
@@ -70,19 +70,19 @@ def test_print_requirements_state_in_uc(capsys):
     assert err == ""
 
 
-def test_bump_upstream_repos_shas():
-    pass
+# def test_bump_upstream_repos_shas():
+#    pass
 
 
 def test_find_yaml_files():
-    assert len(releasing.find_yaml_files("tests/fixtures/*.txtttt")) == 0
-    assert len(releasing.find_yaml_files("tests/fixturesy")) == 0
-    assert len(releasing.find_yaml_files("tests/fixturesy/")) == 0
-    assert len(releasing.find_yaml_files("tests/fixtures/")) == 2
+    assert len(releasing.find_yaml_files("tests/fixtures/repo_packages/*.yaml")) == 0
+    assert len(releasing.find_yaml_files("tests/fixtures/notexistingfolder/")) == 0
+    assert len(releasing.find_yaml_files("tests/fixtures/repo_packages/*")) == 0
+    assert len(releasing.find_yaml_files("tests/fixtures/repo_packages/")) == 2
 
 
-def test_bump_upstream_repo_sha_file():
-    pass
+# def test_bump_upstream_repo_sha_file():
+#    pass
 
 
 # def test_parse_repos_infos():
@@ -95,7 +95,7 @@ def test_bump_upstream_repo_sha_file():
 
 def test_build_repos_dict():
     yaml = YAML()
-    with open("tests/fixtures/gnocchi.yml", "r") as fd:
+    with open("tests/fixtures/repo_packages/gnocchi.yml", "r") as fd:
         repofiledata = yaml.load(fd)
     repos = releasing.build_repos_dict(repofiledata)
     assert repos["gnocchi"]["url"] == "https://github.com/gnocchixyz/gnocchi"
@@ -108,3 +108,30 @@ def test_get_sha_from_ref():
         "https://github.com/openstack/openstack-ansible.git", "newton-eol"
     )
     assert sha == "bf565c6ae34bb4343b4d6b486bd9b514de370b0a"
+
+
+# def test_ansible_role_requirements_file:
+#    pass
+
+# def test_sort_roles:
+#    pass
+
+# def test_clone_role():
+#    pass
+# def test_copy_role_releasenotes():
+#    pass
+
+# def test_find_release_number():
+#    pass
+#
+# def next_release_number():
+#    pass
+
+# def update_release_number():
+#    pass
+
+# def increment_version():
+#    pass
+#
+# def increment_milestone_version():
+#    pass

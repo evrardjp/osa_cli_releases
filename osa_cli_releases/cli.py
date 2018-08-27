@@ -51,8 +51,35 @@ def bump_upstream_repos_shas():
 
 
 def bump_arr():
-    pass
+    """ Bump roles SHA and copies releases notes from the openstack roles.
+    Also bumps roles from external sources when the branch to bump is master.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--file",
+        help="path to ansible-role-requirements.yml file",
+        default="ansible-role-requirements.yml",
+    )
+    parser.add_argument(
+        "os-branch",
+        help="Branch to use to find the role SHA for openstack roles. Master will also freeze external roles.",
+    )
+    args = parser.parse_args()
+    releasing.update_ansible_role_requirements_file(**vars(args))
 
 
 def bump_oa_release_number():
-    pass
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "release_type",
+        choices=("bugfix", "feature", "milestone", "rc"),
+        help="The type of release to generate",
+        default="ansible-role-requirements.yml",
+    )
+    args = parser.parse_args()
+
+    current_version, filename = releasing.find_release_number()
+    print("Found version %s in %s" % (current_version, filename))
+    next_version = releasing.next_release_number(current_version, args.release_type)
+    print("Updating %s to %s" % (filename, next_version))
+    releasing.update_release_number(filename, ".".join(next_version))

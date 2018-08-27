@@ -1,6 +1,9 @@
 from datetime import datetime
 import glob
+import shutil
 import subprocess
+import tempfile
+from dulwich.repo import Repo  # dulwich
 import requests  # requests
 import requirements as pyrequirements  # requirements-parser
 import yaml  # PyYAML
@@ -97,6 +100,7 @@ def bump_upstream_repos_shas(path):
     """
     filelist = find_yaml_files(path)
     for filename in filelist:
+        print("Working on %s" % filename)
         bump_upstream_repos_sha_file(filename)
 
 
@@ -108,7 +112,7 @@ def find_yaml_files(path):
     return glob.glob(path + "/*.yml")
 
 
-def bump_upstream_repo_sha_file(filename):
+def bump_upstream_repos_sha_file(filename):
     yaml = YAML()  # use ruamel.yaml to keep comments
     with open(filename, "r") as ossyml:
         repofiledata = yaml.load(ossyml)
@@ -187,5 +191,164 @@ def get_sha_from_ref(repo_url, reference):
     return refs[0][1].decode("utf-8")
 
 
-def find_next_tag(repo_url, tag):
-    pass
+def update_ansible_role_requirements_file(**kwargs):
+    """ Updates the SHA of each of the ansible roles based on branch given in argument
+    If branch is master, set a sha for the external roles.
+    Else, stable branches only get openstack roles bumped.
+    Copies all the release notes of the roles at the same time.
+    """
+    openstack_roles, external_roles, all_roles = sort_roles(kwargs["file"])
+    if kwargs["os-branch"] == "master":
+        for role in external_roles:
+            index = all_roles.index(role)
+            all_roles[index]["version"] = get_sha_from_ref(role["src"], "master")
+    elif kwargs["os-branch"] not in [
+        "stable/ocata",
+        "stable/pike",
+        "stable/queens",
+        "stable/rocky",
+        "stable/stein",
+    ]:
+        raise ValueError("Branch not recognized %s" % kwargs["os-branch"])
+
+    for role in openstack_roles:
+        index = all_roles.index(role)
+        all_roles[index]["version"], role_path = clone_role(
+            role["src"], kwargs["os-branch"]
+        )
+        copy_role_releasenotes(role_path, "./")
+        shutil.rmtree(role_path)
+    with open(kwargs["file"], "w") as arryml:
+        yaml.safe_dump(all_roles)
+
+
+def sort_roles(ansible_role_requirements_file):
+    """ Separate the openstack roles from the external roles
+    :param ansible_role_requirements_file: Path to the a-r-r file
+    :returns: 3-tuple: (list of openstack roles, list of external roles, list of all roles)
+    """
+    with open(ansible_role_requirements_file, "r") as arryml:
+        all_roles = yaml.safe_load(arryml)
+    external_roles = []
+    openstack_roles = []
+    for role in all_roles:
+        if role["src"].startswith("https://git.openstack.org/"):
+            openstack_roles.append(role)
+        else:
+            external_roles.append(role)
+    return openstack_roles, external_roles, all_roles
+
+
+def clone_role(url, branch):
+    """ Git clone
+    :param url: Source of the git repo
+    :param branch: Branch of the git repo
+    :returns: latest sha of the clone and its location
+    """
+    dirpath = tempfile.mkdtemp()
+    subprocess.check_call(["git", "clone", url, "-b", branch, dirpath])
+    repo = Repo(dirpath)
+
+    return repo.head(), dirpath
+
+
+def copy_role_releasenotes(src_path, dest_path):
+    """ Copy release notes from src to dest
+    """
+    renos = glob.glob("{}/releasenotes/notes/*.yaml".format(src_path))
+    for reno in renos:
+        subprocess.call(
+            ["rsync", "-aq", reno, "{}/releasenotes/notes/".format(dest_path)]
+        )
+
+
+def find_release_number():
+    """ Find a release version amongst usual OSA files
+    :returns: version (str),  filename containing version (string)
+    """
+    oa_version_files = [
+        "inventory/group_vars/all/all.yml",
+        "group_vars/all/all.yml",
+        "playbooks/inventory/group_vars/all.yml",
+    ]
+    for filename in oa_version_files:
+        try:
+            with open(filename, "r") as vf:
+                version = yaml.safe_load(vf)["openstack_release"]
+                found_file = filename
+                break
+        except FileNotFoundError:
+            pass
+    else:
+        raise FileNotFoundError("No file found matching the list of files")
+    return version, found_file
+
+
+def next_release_number(current_version, releasetype):
+    version = current_version.split(".")
+    if releasetype in ("milestone", "rc"):
+        increment_milestone_version(version, releasetype)
+    else:
+        increment = {"bugfix": (0, 0, 1), "feature": (0, 1, 0)}[releasetype]
+        increment_version(version, increment)
+
+
+# THis is taken from releases repo
+def increment_version(old_version, increment):
+    """Compute the new version based on the previous value.
+    :param old_version: Parts of the version string for the last
+                        release.
+    :type old_version: list(str)
+    :param increment: Which positions to increment.
+    :type increment: tuple(int)
+    """
+    new_version_parts = []
+    clear = False
+    for cur, inc in zip(old_version, increment):
+        if clear:
+            new_version_parts.append("0")
+        else:
+            new_version_parts.append(str(int(cur) + inc))
+            if inc:
+                clear = True
+    return new_version_parts
+
+
+# THis is taken from releases repo
+def increment_milestone_version(old_version, release_type):
+    """Increment a version using the rules for milestone projects.
+    :param old_version: Parts of the version string for the last
+                        release.
+    :type old_version: list(str)
+    :param release_type: Either ``'milestone'`` or ``'rc'``.
+    :type release_type: str
+    """
+    if release_type == "milestone":
+        if "b" in old_version[-1]:
+            # Not the first milestone
+            new_version_parts = old_version[:-1]
+            next_milestone = int(old_version[-1][2:]) + 1
+            new_version_parts.append("0b{}".format(next_milestone))
+        else:
+            new_version_parts = increment_version(old_version, (1, 0, 0))
+            new_version_parts.append("0b1")
+    elif release_type == "rc":
+        new_version_parts = old_version[:-1]
+        if "b" in old_version[-1]:
+            # First RC
+            new_version_parts.append("0rc1")
+        else:
+            next_rc = int(old_version[-1][3:]) + 1
+            new_version_parts.append("0rc{}".format(next_rc))
+    else:
+        raise ValueError("Unknown release type {!r}".format(release_type))
+    return new_version_parts
+
+
+def update_release_number(filename, version):
+    yaml = YAML()
+    with open(filename, "r") as versionfile:
+        y = yaml.load(versionfile)
+    y["openstack_version"] = version
+    with open(filename, "w") as versionfile:
+        yaml.dump(y, versionfile)
