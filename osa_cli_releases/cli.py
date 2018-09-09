@@ -65,7 +65,7 @@ def bump_arr():
         help="Branch to use to find the role SHA for openstack roles. Master will also freeze external roles.",
     )
     args = parser.parse_args()
-    releasing.update_ansible_role_requirements_file(**vars(args))
+    releasing.update_ansible_role_requirements_file(filename=args['file'],branchname=args['os-branch'])
 
 
 def bump_oa_release_number():
@@ -74,7 +74,7 @@ def bump_oa_release_number():
         "release_type",
         choices=("bugfix", "feature", "milestone", "rc"),
         help="The type of release to generate",
-        default="ansible-role-requirements.yml",
+        default="bugfix",
     )
     args = parser.parse_args()
 

@@ -191,34 +191,34 @@ def get_sha_from_ref(repo_url, reference):
     return refs[0][1].decode("utf-8")
 
 
-def update_ansible_role_requirements_file(**kwargs):
+def update_ansible_role_requirements_file(filename='', branchname=''):
     """ Updates the SHA of each of the ansible roles based on branch given in argument
     If branch is master, set a sha for the external roles.
     Else, stable branches only get openstack roles bumped.
     Copies all the release notes of the roles at the same time.
     """
-    openstack_roles, external_roles, all_roles = sort_roles(kwargs["file"])
-    if kwargs["os-branch"] == "master":
+    openstack_roles, external_roles, all_roles = sort_roles(filename)
+    if branchname == "master":
         for role in external_roles:
             index = all_roles.index(role)
             all_roles[index]["version"] = get_sha_from_ref(role["src"], "master")
-    elif kwargs["os-branch"] not in [
+    elif branchname not in [
         "stable/ocata",
         "stable/pike",
         "stable/queens",
         "stable/rocky",
         "stable/stein",
     ]:
-        raise ValueError("Branch not recognized %s" % kwargs["os-branch"])
+        raise ValueError("Branch not recognized %s" % branchname)
 
     for role in openstack_roles:
         index = all_roles.index(role)
         all_roles[index]["version"], role_path = clone_role(
-            role["src"], kwargs["os-branch"]
+            role["src"], branchname
         )
         copy_role_releasenotes(role_path, "./")
         shutil.rmtree(role_path)
-    with open(kwargs["file"], "w") as arryml:
+    with open(filename, "w") as arryml:
         yaml.safe_dump(all_roles)
 
 
