@@ -119,14 +119,19 @@ def bump_upstream_repos_sha_file(filename):
 
     repos = build_repos_dict(repofiledata)
     for project, projectdata in repos.items():
-        # Do not update if no branch to track
-        if projectdata["trackbranch"] is not None:
-            sha = get_sha_from_ref(projectdata["url"], projectdata["branch"])
+        # a _git_track_branch string of "None" means no tracking, which means
+        # do not update (as there is no branch to track)
+        if projectdata["trackbranch"] != "None":
+            print("Bumping project %s on its %s branch" %
+                     ( projectdata['url'], projectdata['trackbranch'] ))
+            sha = get_sha_from_ref(projectdata["url"], projectdata["trackbranch"])
             repofiledata[project + "_git_install_branch"] = sha
             repofiledata.yaml_add_eol_comment(
                 "HEAD as of {:%d.%m.%Y}".format(datetime.now()),
                 project + "_git_install_branch",
             )
+        else:
+            print("Skipping project %s branch %s" % (projectdata['url'], projectdata['trackbranch']))
 
     with open(filename, "w") as fw:
         yaml.dump(repofiledata, fw)
