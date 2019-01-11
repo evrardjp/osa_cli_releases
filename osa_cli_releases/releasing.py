@@ -1,5 +1,6 @@
 from datetime import datetime
 import glob
+import os
 import shutil
 import subprocess
 import tempfile
@@ -122,8 +123,10 @@ def bump_upstream_repos_sha_file(filename):
         # a _git_track_branch string of "None" means no tracking, which means
         # do not update (as there is no branch to track)
         if projectdata["trackbranch"] != "None":
-            print("Bumping project %s on its %s branch" %
-                     ( projectdata['url'], projectdata['trackbranch'] ))
+            print(
+                "Bumping project %s on its %s branch"
+                % (projectdata["url"], projectdata["trackbranch"])
+            )
             sha = get_sha_from_ref(projectdata["url"], projectdata["trackbranch"])
             repofiledata[project + "_git_install_branch"] = sha
             repofiledata.yaml_add_eol_comment(
@@ -131,7 +134,10 @@ def bump_upstream_repos_sha_file(filename):
                 project + "_git_install_branch",
             )
         else:
-            print("Skipping project %s branch %s" % (projectdata['url'], projectdata['trackbranch']))
+            print(
+                "Skipping project %s branch %s"
+                % (projectdata["url"], projectdata["trackbranch"])
+            )
 
     with open(filename, "w") as fw:
         yaml.dump(repofiledata, fw)
@@ -196,18 +202,14 @@ def get_sha_from_ref(repo_url, reference):
     return refs[0][1].decode("utf-8")
 
 
-def update_ansible_role_requirements_file(filename='', branchname=''):
+def update_ansible_role_requirements_file(filename="", branchname=""):
     """ Updates the SHA of each of the ansible roles based on branch given in argument
     If branch is master, set a sha for the external roles.
     Else, stable branches only get openstack roles bumped.
     Copies all the release notes of the roles at the same time.
     """
-    openstack_roles, external_roles, all_roles = sort_roles(filename)
-    if branchname == "master":
-        for role in external_roles:
-            index = all_roles.index(role)
-            all_roles[index]["version"] = get_sha_from_ref(role["src"], "master")
-    elif branchname not in [
+    if branchname not in [
+        "master",
         "stable/ocata",
         "stable/pike",
         "stable/queens",
@@ -216,15 +218,31 @@ def update_ansible_role_requirements_file(filename='', branchname=''):
     ]:
         raise ValueError("Branch not recognized %s" % branchname)
 
+    openstack_roles, external_roles, all_roles = sort_roles(filename)
+
+    if branchname == "master":
+        # TODO(evrardjp): Improve this for ceph
+        for role in external_roles:
+            index = all_roles.index(role)
+            all_roles[index]["version"] = get_sha_from_ref(role["src"], "master")
+
+    clone_root_path = tempfile.mkdtemp()
     for role in openstack_roles:
+        # TODO(evrardjp): use multiprocessing
         index = all_roles.index(role)
-        all_roles[index]["version"], role_path = clone_role(
-            role["src"], branchname
+        version, role_path = clone_role(
+            role["src"], branchname, clone_root_path, depth="1"
         )
+        # The whole a-r-r is utf-8 encoded, and version is a bytestring.
+        all_roles[index]["version"] = version.decode("utf-8")
+        print("Copying %s's release notes" % role["name"])
         copy_role_releasenotes(role_path, "./")
         shutil.rmtree(role_path)
+    shutil.rmtree(clone_root_path)
+    print("Overwriting ansible-role-requirements")
     with open(filename, "w") as arryml:
-        yaml.safe_dump(all_roles)
+        yaml = YAML()  # use ruamel.yaml to keep comments that could appear
+        yaml.dump(all_roles, arryml)
 
 
 def sort_roles(ansible_role_requirements_file):
@@ -244,16 +262,31 @@ def sort_roles(ansible_role_requirements_file):
     return openstack_roles, external_roles, all_roles
 
 
-def clone_role(url, branch):
+def clone_role(url, branch, clone_root_path, clone_folder=None, depth=None):
     """ Git clone
     :param url: Source of the git repo
     :param branch: Branch of the git repo
+    :param clone_root_path: The main folder in which the repo will be cloned.
+    :param clone_folder: The relative folder name of the git clone to the clone_root_path
+    :param depth(str): The git shallow clone depth
     :returns: latest sha of the clone and its location
     """
-    dirpath = tempfile.mkdtemp()
-    subprocess.check_call(["git", "clone", url, "-b", branch, dirpath])
-    repo = Repo(dirpath)
+    gitcall = ["git", "clone"]
 
+    if depth and depth.isdigit():
+        gitcall.extend(["--depth", depth, "--no-single-branch"])
+
+    gitcall.append(url)
+
+    gitcall.extend(["-b", branch])
+
+    if not clone_folder:
+        clone_folder = url.split("/")[-1]
+    dirpath = os.path.join(clone_root_path, clone_folder)
+    gitcall.append(dirpath)
+
+    subprocess.check_call(gitcall)
+    repo = Repo(dirpath)
     return repo.head(), dirpath
 
 
