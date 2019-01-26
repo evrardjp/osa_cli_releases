@@ -140,8 +140,10 @@ def bump_upstream_repos_sha_file(filename):
             )
 
     with open(filename, "w") as fw:
+        # Temporarily revert the explicit start to add --- into first line
+        yaml.explicit_start = True
         yaml.dump(repofiledata, fw)
-
+        yaml.explicit_start = False
 
 # def parse_repos_info(filename):
 #    """ Take a file consisting of ordered entries
