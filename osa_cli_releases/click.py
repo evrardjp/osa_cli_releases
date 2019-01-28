@@ -93,6 +93,6 @@ def bump_oa_release_number(global_ctx, **kwargs):
     next_version = releasing.next_release_number(
         current_version, kwargs["release_type"]
     )
-    if debug:
-        print("Updating %s to %s" % (filename, next_version))
-    releasing.update_release_number(filename, ".".join(next_version))
+    string_version = ".".join(next_version)
+    releasing.update_release_number(filename, string_version)
+    print("Updated version to {}".format(string_version))
