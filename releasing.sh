@@ -63,19 +63,12 @@ function parse_release_log {
 
 function parse_gitreview_log {
   export RELEASE_CHANGEID=$(perl -n -e '/remote.*(https.*review.openstack.org\/\d+)/ && print "$1\n"' ${RELEASINGLOG} | tail -n 1)
-  export release_changeid=${RELEASE_CHANGEID} # To be removed when osa-toolkit is cleaned up
   echo "Found git review url: $RELEASE_CHANGEID"
 }
 
 function write_commit_msg {
   cat > ${OACOMMITMSG} << EOCOMMIT
-Update all SHAs for ${next_release:-'next release'}
-
-This patch:
-- updates all the roles to the latest available stable SHAs
-- copies the release notes from the updated roles into the integrated repo
-- updates all the OpenStack Service SHAs
-#- updates the appropriate python requirements pins
+Bump version to ${next_release:-'next release'}
 
 Depends-On: ${RELEASE_CHANGEID}
 EOCOMMIT
@@ -98,7 +91,7 @@ function release_branch {
 
   rollback_time ${WORKDIR}/releases # In case something was wrongly done on master, come back in time.
   git checkout -b release_osa       # Create a new branch for doing the release
-  new_release $BRANCH               # Uses's releases' tox tool to produce a release. It will auto 
+  new_release $BRANCH               # Uses's releases' tox tool to produce a release.
   parse_release_log                 # Get current's code version by parsing "next release" element from releases repo
   ask_ready_to_review ${WORKDIR}/releases ${RELEASECOMMITMSG} # Wait for user editions and confirmations before git review -f
   parse_gitreview_log               # Get review change id for the depends on.
@@ -106,7 +99,6 @@ function release_branch {
 #  above section, and export the release change details for the
 #  depends on, like this:
 #  export RELEASE_CHANGEID="https://review.openstack.org/#/c/584787/"
-#  export release_changeid="https://review.openstack.org/#/c/584787/"
   rollback_time ${WORKDIR}/releases # In case something was wrongly done on master, come back in time.
 
   ##########################
@@ -122,14 +114,9 @@ function release_branch {
   git checkout -b stable/$BRANCH -t origin/stable/$BRANCH || true # Ensure the work of OSA toolkit is done on the right branch.
   git pull                                                        # Ensure said branch is up to date.
 
-  bump-ansible-role-requirements | tee -a ${RELEASINGLOG}         # self-explanatory. CLI command from toolkit. # Keep in mind hardcoded location there.
-  bump-oa-release-number --version=auto | tee -a ${RELEASINGLOG}  # self-explanatory. CLI command from toolkit.
-  # The current toolkit shows an "Update all SHAs for " example commit message, that can be used for discovering next version.
-  export NEXT_RELEASE=$(perl -n -e '/Update all SHAs for (.*)/ && print "$1\n"' ${RELEASINGLOG} | tail -n 1 )
-  export next_release=${NEXT_RELEASE}                             # To be removed when osa-tookit is cleaned up
-  #check-global-requirements | tee -a ${RELEASINGLOG}             # CLI from toolkit
-  bump-upstream-sources | tee -a ${RELEASINGLOG}                  # CLI from toolkit
-  #update-role-files | tee -a ${RELEASINGLOG}                     # From OSA repo
+  osa releases bump_release_number | tee -a ${RELEASINGLOG}
+  export next_release=$(tail -n 1 ${RELEASINGLOG} | cut -d ' ' -f 4)
+  git checkout -b release_osa
   write_commit_msg                                                # Prepare an example commit message.
   ask_ready_to_review ${WORKDIR}/openstack-ansible ${OACOMMITMSG} # Wait for user editions and confirmations before git review -f
   rollback_time ${WORKDIR}/openstack-ansible                      # In case something was wrongly done on master, come back in time
@@ -139,6 +126,7 @@ function release_branch {
 cleanup
 clone
 
+release_branch rocky
 release_branch queens
 release_branch pike
-release_branch ocata
+#release_branch ocata
