@@ -10,6 +10,8 @@ import requirements as pyrequirements  # requirements-parser
 import yaml  # PyYAML
 from prettytable import PrettyTable  # prettytable
 from ruamel.yaml import YAML  # ruamel.yaml
+import re
+import fileinput
 
 
 def parse_requirements(requirements):
@@ -144,6 +146,7 @@ def bump_upstream_repos_sha_file(filename):
         yaml.explicit_start = True
         yaml.dump(repofiledata, fw)
         yaml.explicit_start = False
+
 
 # def parse_repos_info(filename):
 #    """ Take a file consisting of ordered entries
@@ -327,10 +330,10 @@ def find_release_number():
 def next_release_number(current_version, releasetype):
     version = current_version.split(".")
     if releasetype in ("milestone", "rc"):
-        increment_milestone_version(version, releasetype)
+        return increment_milestone_version(version, releasetype)
     else:
         increment = {"bugfix": (0, 0, 1), "feature": (0, 1, 0)}[releasetype]
-        increment_version(version, increment)
+        return increment_version(version, increment)
 
 
 # THis is taken from releases repo
@@ -386,9 +389,18 @@ def increment_milestone_version(old_version, release_type):
 
 
 def update_release_number(filename, version):
-    yaml = YAML()
-    with open(filename, "r") as versionfile:
-        y = yaml.load(versionfile)
-    y["openstack_version"] = version
-    with open(filename, "w") as versionfile:
-        yaml.dump(y, versionfile)
+    regex = re.compile("^openstack_release.*$")
+    for line in fileinput.input(filename, inplace=True):
+        match = regex.match(line)
+        if match:
+            print("openstack_release: {}".format(version))
+        else:
+            print(line, end="")
+
+    # yaml = YAML()
+    # with open(filename, "r") as versionfile:
+    #    y = yaml.load(versionfile)
+    # y["openstack_release"] = version
+    # with open(filename, "w") as versionfile:
+    #    yaml.explit_start = True
+    #    yaml.dump(y, versionfile, width=100)
