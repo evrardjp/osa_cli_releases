@@ -72,27 +72,3 @@ def bump_arr(global_ctx, **kwargs):
     releasing.update_ansible_role_requirements_file(
         filename=kwargs["file"], branchname=kwargs["os_branch"]
     )
-
-
-@releases.command("bump_release_number")
-@click.option(
-    "--release_type",
-    type=click.Choice(choices=["bugfix", "feature", "milestone", "rc"]),
-    help="The type of release to generate",
-    default="bugfix",
-)
-@click.pass_obj
-def bump_oa_release_number(global_ctx, **kwargs):
-    """ Updates the version of the release in tree
-    """
-    debug = global_ctx["debug"]
-
-    current_version, filename = releasing.find_release_number()
-    if debug:
-        print("Found version %s in %s" % (current_version, filename))
-    next_version = releasing.next_release_number(
-        current_version, kwargs["release_type"]
-    )
-    string_version = ".".join(next_version)
-    releasing.update_release_number(filename, string_version)
-    print("Updated version to {}".format(string_version))

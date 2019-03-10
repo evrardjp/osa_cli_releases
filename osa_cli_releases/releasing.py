@@ -388,19 +388,3 @@ def increment_milestone_version(old_version, release_type):
     return new_version_parts
 
 
-def update_release_number(filename, version):
-    regex = re.compile("^openstack_release.*$")
-    for line in fileinput.input(filename, inplace=True):
-        match = regex.match(line)
-        if match:
-            print("openstack_release: {}".format(version))
-        else:
-            print(line, end="")
-
-    # yaml = YAML()
-    # with open(filename, "r") as versionfile:
-    #    y = yaml.load(versionfile)
-    # y["openstack_release"] = version
-    # with open(filename, "w") as versionfile:
-    #    yaml.explit_start = True
-    #    yaml.dump(y, versionfile, width=100)
