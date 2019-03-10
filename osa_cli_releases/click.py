@@ -72,3 +72,20 @@ def bump_arr(global_ctx, **kwargs):
     releasing.update_ansible_role_requirements_file(
         filename=kwargs["file"], branchname=kwargs["os_branch"]
     )
+
+
+@releases.command("freeze_roles_for_milestone")
+@click.pass_obj
+@click.option(
+    "--file",
+    type=click.Path(file_okay=True, dir_okay=False, writable=True),
+    help="path to ansible-role-requirements.yml",
+    default="ansible-role-requirements.yml",
+)
+def freeze_arr(global_ctx, **kwargs):
+    """ Bump roles SHA and copies their releases notes.
+    Also bumps roles from external sources when the branch to bump is master.
+    """
+    releasing.freeze_ansible_role_requirements_file(filename=kwargs["file"])
+
+
