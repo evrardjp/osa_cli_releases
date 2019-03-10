@@ -207,6 +207,10 @@ def get_sha_from_ref(repo_url, reference):
     return refs[0][1].decode("utf-8")
 
 
+def freeze_ansible_role_requirements_file(filename=""):
+    """ Freezes a-r-r for master"""
+    print("TODO")
+
 def update_ansible_role_requirements_file(filename="", branchname=""):
     """ Updates the SHA of each of the ansible roles based on branch given in argument
     If branch is master, set a sha for the external roles.

@@ -66,3 +66,19 @@ def bump_arr():
     )
     args = parser.parse_args()
     releasing.update_ansible_role_requirements_file(filename=args['file'],branchname=args['os-branch'])
+
+
+def freeze_arr():
+    """ Freeze all roles shas for milestone releases.
+    Bump roles SHA and copies releases notes from the openstack roles.
+    Also freezes roles from external sources.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--file",
+        help="path to ansible-role-requirements.yml file",
+        default="ansible-role-requirements.yml",
+    )
+    args = parser.parse_args()
+    releasing.freeze_ansible_role_requirements_file(filename=args['file'])
+
