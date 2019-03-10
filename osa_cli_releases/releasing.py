@@ -209,7 +209,10 @@ def get_sha_from_ref(repo_url, reference):
 
 def freeze_ansible_role_requirements_file(filename=""):
     """ Freezes a-r-r for master"""
-    print("TODO")
+    update_ansible_role_requirements_file(
+        filename, branchname="master", milestone_freeze=True
+    )
+
 
 def update_ansible_role_requirements_file(
     filename="", branchname="", milestone_freeze=False
