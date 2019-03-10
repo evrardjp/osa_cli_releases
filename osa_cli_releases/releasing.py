@@ -211,9 +211,12 @@ def freeze_ansible_role_requirements_file(filename=""):
     """ Freezes a-r-r for master"""
     print("TODO")
 
-def update_ansible_role_requirements_file(filename="", branchname=""):
+def update_ansible_role_requirements_file(
+    filename="", branchname="", milestone_freeze=False
+):
     """ Updates the SHA of each of the ansible roles based on branch given in argument
-    If branch is master, set a sha for the external roles.
+    Do not do anything on master except if milestone_freeze.
+    In that case, freeze by using the branch present in version.
     Else, stable branches only get openstack roles bumped.
     Copies all the release notes of the roles at the same time.
     """
@@ -227,26 +230,42 @@ def update_ansible_role_requirements_file(filename="", branchname=""):
     ]:
         raise ValueError("Branch not recognized %s" % branchname)
 
+    if branchname == "master" and not milestone_freeze:
+        print("I will not freeze master roles until explicitly asked to freeze")
+        return -1
+
     openstack_roles, external_roles, all_roles = sort_roles(filename)
 
-    if branchname == "master":
-        # TODO(evrardjp): Improve this for ceph
-        for role in external_roles:
-            index = all_roles.index(role)
-            all_roles[index]["version"] = get_sha_from_ref(role["src"], "master")
-
     clone_root_path = tempfile.mkdtemp()
-    for role in openstack_roles:
-        # TODO(evrardjp): use multiprocessing
-        index = all_roles.index(role)
-        version, role_path = clone_role(
-            role["src"], branchname, clone_root_path, depth="1"
-        )
-        # The whole a-r-r is utf-8 encoded, and version is a bytestring.
-        all_roles[index]["version"] = version.decode("utf-8")
-        print("Copying %s's release notes" % role["name"])
-        copy_role_releasenotes(role_path, "./")
-        shutil.rmtree(role_path)
+
+    for role in all_roles:
+        # milestone freeze case
+        if branchname == "master":
+            trackbranch = role["version"]
+            copyreleasenotes = True
+        # Stable branches don't change external roles
+        # (and we have the name of the branch to track)
+        elif role in openstack_roles:
+            trackbranch = branchname
+            copyreleasenotes = True
+        # do nothing for non openstack roles
+        else:
+            trackbranch = False
+            copyreleasenotes = False
+
+        # Freeze sha by checking its trackbranch value
+        if trackbranch:
+            role["version"] = get_sha_from_ref(role["src"], trackbranch)
+            print("Bumped role %s to sha %s" % (role["name"], role["version"]))
+
+        # Copy the release notes `Also handle the release notes
+        if copyreleasenotes:
+            print("Cloning and copying %s's release notes" % role["name"])
+            _, role_path = clone_role(
+                role["src"], trackbranch, clone_root_path, depth="1"
+            )
+            copy_role_releasenotes(role_path, "./")
+            shutil.rmtree(role_path)
     shutil.rmtree(clone_root_path)
     print("Overwriting ansible-role-requirements")
     with open(filename, "w") as arryml:
