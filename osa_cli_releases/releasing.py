@@ -233,33 +233,29 @@ def update_ansible_role_requirements_file(
     ]:
         raise ValueError("Branch not recognized %s" % branchname)
 
-    if branchname == "master" and not milestone_freeze:
-        print("I will not freeze master roles until explicitly asked to freeze")
-        return -1
-
     openstack_roles, external_roles, all_roles = sort_roles(filename)
 
     clone_root_path = tempfile.mkdtemp()
 
     for role in all_roles:
-        # milestone freeze case
-        if branchname == "master":
-            trackbranch = role["version"]
+        trackbranch = role.get("trackbranch")
+        if role in openstack_roles:
             copyreleasenotes = True
-        # Stable branches don't change external roles
-        # (and we have the name of the branch to track)
-        elif role in openstack_roles:
-            trackbranch = branchname
-            copyreleasenotes = True
-        # do nothing for non openstack roles
-        else:
-            trackbranch = False
-            copyreleasenotes = False
 
         # Freeze sha by checking its trackbranch value
+        # Do not freeze sha if trackbranch is None
         if trackbranch:
-            role["version"] = get_sha_from_ref(role["src"], trackbranch)
-            print("Bumped role %s to sha %s" % (role["name"], role["version"]))
+            # Unfreeze on master, not bump
+            if (
+                branchname == "master"
+                and not milestone_freeze
+                and role["version"] != trackbranch
+            ):
+                print("Unfreeze master role")
+                role["version"] = trackbranch
+            else:
+                role["version"] = get_sha_from_ref(role["src"], trackbranch)
+                print("Bumped role %s to sha %s" % (role["name"], role["version"]))
 
         # Copy the release notes `Also handle the release notes
         if copyreleasenotes:
@@ -412,5 +408,3 @@ def increment_milestone_version(old_version, release_type):
     else:
         raise ValueError("Unknown release type {!r}".format(release_type))
     return new_version_parts
-
-
