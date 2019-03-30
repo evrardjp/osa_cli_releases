@@ -239,6 +239,8 @@ def update_ansible_role_requirements_file(
 
     for role in all_roles:
         trackbranch = role.get("trackbranch")
+        copyreleasenotes = False
+
         if role in openstack_roles:
             copyreleasenotes = True
 
