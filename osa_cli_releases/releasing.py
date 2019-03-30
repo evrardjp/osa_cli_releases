@@ -251,10 +251,10 @@ def update_ansible_role_requirements_file(
             if (
                 branchname == "master"
                 and not milestone_freeze
-                and role["version"] != trackbranch
             ):
                 print("Unfreeze master role")
                 role["version"] = trackbranch
+            # Freeze or Bump
             else:
                 role["version"] = get_sha_from_ref(role["src"], trackbranch)
                 print("Bumped role %s to sha %s" % (role["name"], role["version"]))
