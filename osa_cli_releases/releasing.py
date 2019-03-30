@@ -263,7 +263,7 @@ def update_ansible_role_requirements_file(
         if copyreleasenotes:
             print("Cloning and copying %s's release notes" % role["name"])
             _, role_path = clone_role(
-                role["src"], trackbranch, clone_root_path, depth="1"
+                role["src"], branchname, clone_root_path, depth="1"
             )
             copy_role_releasenotes(role_path, "./")
             shutil.rmtree(role_path)
