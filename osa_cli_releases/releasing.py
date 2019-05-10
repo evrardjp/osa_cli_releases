@@ -241,7 +241,9 @@ def update_ansible_role_requirements_file(
         trackbranch = role.get("trackbranch")
         copyreleasenotes = False
 
-        if role in openstack_roles:
+        # We don't want to copy config_template renos even if it's an openstack
+        # role, as it's not branched the same way.
+        if role in openstack_roles and (not role["src"].endswith("config_template")):
             copyreleasenotes = True
 
         # Freeze sha by checking its trackbranch value
