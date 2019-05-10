@@ -248,10 +248,7 @@ def update_ansible_role_requirements_file(
         # Do not freeze sha if trackbranch is None
         if trackbranch:
             # Unfreeze on master, not bump
-            if (
-                branchname == "master"
-                and not milestone_freeze
-            ):
+            if branchname == "master" and not milestone_freeze:
                 print("Unfreeze master role")
                 role["version"] = trackbranch
             # Freeze or Bump
@@ -284,7 +281,9 @@ def sort_roles(ansible_role_requirements_file):
     external_roles = []
     openstack_roles = []
     for role in all_roles:
-        if role["src"].startswith("https://git.openstack.org/"):
+        if role["src"].startswith("https://git.openstack.org/") or (
+            role["src"].startswith("https://opendev.org/openstack/")
+        ):
             openstack_roles.append(role)
         else:
             external_roles.append(role)
