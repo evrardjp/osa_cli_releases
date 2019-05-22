@@ -259,7 +259,8 @@ def update_ansible_role_requirements_file(
                 print("Bumped role %s to sha %s" % (role["name"], role["version"]))
 
         # Copy the release notes `Also handle the release notes
-        if copyreleasenotes:
+        # If frozen, no need to copy release notes.
+        if copyreleasenotes and trackbranch:
             print("Cloning and copying %s's release notes" % role["name"])
             _, role_path = clone_role(
                 role["src"], branchname, clone_root_path, depth="1"
