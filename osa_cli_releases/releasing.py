@@ -231,6 +231,9 @@ def update_ansible_role_requirements_file(
         "stable/rocky",
         "stable/stein",
         "stable/train",
+        "stable/ussuri",
+        "stable/victoria",
+        "stable/wallaby",
     ]:
         raise ValueError("Branch not recognized %s" % branchname)
 
