@@ -240,6 +240,12 @@ def update_ansible_role_requirements_file(
 
     for role in all_roles:
         trackbranch = role.get("trackbranch")
+        if not trackbranch or trackbranch.lower() == "none":
+            print(
+                "Skipping role %s branch" % role["name"]
+            )
+            continue
+
         copyreleasenotes = False
 
         # We don't want to copy config_template renos even if it's an openstack
