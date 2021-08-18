@@ -210,12 +210,12 @@ def get_sha_from_ref(repo_url, reference):
 def freeze_ansible_role_requirements_file(filename=""):
     """ Freezes a-r-r for master"""
     update_ansible_role_requirements_file(
-        filename, branchname="master", milestone_freeze=True
+        filename, milestone_freeze=True
     )
 
 
 def update_ansible_role_requirements_file(
-    filename="", branchname="", milestone_freeze=False
+    filename="", milestone_freeze=False
 ):
     """ Updates the SHA of each of the ansible roles based on branch given in argument
     Do not do anything on master except if milestone_freeze.
@@ -223,19 +223,6 @@ def update_ansible_role_requirements_file(
     Else, stable branches only get openstack roles bumped.
     Copies all the release notes of the roles at the same time.
     """
-    if branchname not in [
-        "master",
-        "stable/ocata",
-        "stable/pike",
-        "stable/queens",
-        "stable/rocky",
-        "stable/stein",
-        "stable/train",
-        "stable/ussuri",
-        "stable/victoria",
-        "stable/wallaby",
-    ]:
-        raise ValueError("Branch not recognized %s" % branchname)
 
     openstack_roles, external_roles, all_roles = sort_roles(filename)
 
@@ -266,7 +253,7 @@ def update_ansible_role_requirements_file(
                    role["src"], trackbranch, clone_root_path, depth="1"
                 )
                 # Unfreeze on master, not bump
-                if branchname == "master" and not milestone_freeze:
+                if trackbranch == "master" and not milestone_freeze:
                     print("Unfreeze master role")
                     role["version"] = trackbranch
                 # Freeze or Bump

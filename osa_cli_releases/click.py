@@ -70,7 +70,7 @@ def bump_arr(global_ctx, **kwargs):
     Also bumps roles from external sources when the branch to bump is master.
     """
     releasing.update_ansible_role_requirements_file(
-        filename=kwargs["file"], branchname=kwargs["os_branch"]
+        filename=kwargs["file"]
     )
 
 

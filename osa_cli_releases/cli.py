@@ -60,12 +60,8 @@ def bump_arr():
         help="path to ansible-role-requirements.yml file",
         default="ansible-role-requirements.yml",
     )
-    parser.add_argument(
-        "os-branch",
-        help="Branch to use to find the role SHA for openstack roles. Master will also freeze external roles.",
-    )
     args = parser.parse_args()
-    releasing.update_ansible_role_requirements_file(filename=args['file'],branchname=args['os-branch'])
+    releasing.update_ansible_role_requirements_file(filename=args['file'])
 
 
 def freeze_arr():
