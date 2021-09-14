@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import glob
 import os
 import shutil
@@ -251,6 +251,8 @@ def update_ansible_role_requirements_file(
 
         copyreleasenotes = False
 
+        shallow_since = role.get("shallow_since")
+
         # We don't want to copy config_template renos even if it's an openstack
         # role, as it's not branched the same way.
         if role in openstack_roles and (not role["src"].endswith("config_template")):
@@ -259,24 +261,33 @@ def update_ansible_role_requirements_file(
         # Freeze sha by checking its trackbranch value
         # Do not freeze sha if trackbranch is None
         if trackbranch:
-            # Unfreeze on master, not bump
-            if branchname == "master" and not milestone_freeze:
-                print("Unfreeze master role")
-                role["version"] = trackbranch
-            # Freeze or Bump
-            else:
-                role["version"] = get_sha_from_ref(role["src"], trackbranch)
-                print("Bumped role %s to sha %s" % (role["name"], role["version"]))
+            try:
+                role_repo = clone_role(
+                   role["src"], trackbranch, clone_root_path, depth="1"
+                )
+                # Unfreeze on master, not bump
+                if branchname == "master" and not milestone_freeze:
+                    print("Unfreeze master role")
+                    role["version"] = trackbranch
+                # Freeze or Bump
+                else:
+                    role_head = role_repo.head()
+                    role["version"] = role_head.decode()
+                    print("Bumped role %s to sha %s" % (role["name"], role["version"]))
 
-        # Copy the release notes `Also handle the release notes
-        # If frozen, no need to copy release notes.
-        if copyreleasenotes and trackbranch:
-            print("Cloning and copying %s's release notes" % role["name"])
-            _, role_path = clone_role(
-                role["src"], branchname, clone_root_path, depth="1"
-            )
-            copy_role_releasenotes(role_path, "./")
-            shutil.rmtree(role_path)
+                    if shallow_since:
+                        head_timestamp = role_repo[role_head].commit_time
+                        head_datetime = datetime.fromtimestamp(head_timestamp) - timedelta(days=1)
+                        role["shallow_since"] = head_datetime.strftime('%Y-%m-%d')
+
+                # Copy the release notes `Also handle the release notes
+                # If frozen, no need to copy release notes.
+                if copyreleasenotes:
+                    print("Copying %s's release notes" % role["name"])
+                    copy_role_releasenotes(role_repo.path, "./")
+            finally:
+                shutil.rmtree(role_repo.path)
+
     shutil.rmtree(clone_root_path)
     print("Overwriting ansible-role-requirements")
     with open(filename, "w") as arryml:
@@ -310,7 +321,7 @@ def clone_role(url, branch, clone_root_path, clone_folder=None, depth=None):
     :param clone_root_path: The main folder in which the repo will be cloned.
     :param clone_folder: The relative folder name of the git clone to the clone_root_path
     :param depth(str): The git shallow clone depth
-    :returns: latest sha of the clone and its location
+    :returns: dulwich repository object
     """
     gitcall = ["git", "clone"]
 
@@ -328,7 +339,7 @@ def clone_role(url, branch, clone_root_path, clone_folder=None, depth=None):
 
     subprocess.check_call(gitcall)
     repo = Repo(dirpath)
-    return repo.head(), dirpath
+    return repo
 
 
 def copy_role_releasenotes(src_path, dest_path):
