@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import glob
 import os
 import shutil
@@ -277,7 +277,7 @@ def update_ansible_role_requirements_file(
 
                     if shallow_since:
                         head_timestamp = role_repo[role_head].commit_time
-                        head_datetime = datetime.fromtimestamp(head_timestamp)
+                        head_datetime = datetime.fromtimestamp(head_timestamp) - timedelta(days=1)
                         role["shallow_since"] = head_datetime.strftime('%Y-%m-%d')
 
                 # Copy the release notes `Also handle the release notes
