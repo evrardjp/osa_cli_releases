@@ -12,5 +12,5 @@
 # Bumping pip to version 10 fails in tempest when trying to install
 # packages with an empty list.
 pip==19.2
-setuptools==40.0.0
+setuptools==65.5.1
 wheel==0.31.1
